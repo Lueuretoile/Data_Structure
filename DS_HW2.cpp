@@ -2,4 +2,6 @@
 
 int main() {
   std::cout << "Nigga" std::endl;
+  hello
+    
 }
