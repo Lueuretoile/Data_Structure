@@ -90,10 +90,49 @@ class Maze {
     }
 };
 
-
+void showMenu() {
+  cout << "*** (^_^) Data Structure (^o^) ***" << endl;
+  cout << "*** Find the Goal(s) in a Maze ***" << endl;
+  cout << "* 0. Quit                        *" << endl;
+  cout << "* 1. Find one goal               *" << endl;
+  cout << "* 2. Find goal(s) as requested   *" << endl;
+  cout << "* 3. How many goals?             *" << endl;
+  cout << "* 4. Shortest path to one goal   *" << endl;
+  cout << "**********************************" << endl;
+}
 
 int main() {
+  Maze* currentMaze = nullptr;
+  int command;
 
+  while(true) {
+    showMenu();
+    cout << "Input a command(0, 1, 2, 3, 4): ";
 
+    if (!(cin >> command)) {
+      cin.clear();
+      string dummy;
+      getline(cin, dummy);
+      cout << endl << "Command does not exist!" << endl << endl;
+      continue;
+    }
 
+    if (command < 0 || command > 4) {
+      cout << endl << "Command does not exist!" << endl << endl;
+      continue;
+    }
+
+    if (command == 1) {
+
+    } else if (command == 2) {
+
+    } else if (command == 3) {
+
+    } else if (command == 4) {
+
+    }
+  
+ }
+
+ return 0;
 }
