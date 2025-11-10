@@ -1,4 +1,50 @@
 #include <iostream>
+
+class Stack {
+ private:
+  StackNode* top;
+  int size;
+  
+ public:
+  Stack() : top(nullptr), size(0) {}
+  
+  ~Stack() {
+    while (top != nullptr) {
+      StackNode* temp = top;
+      top = top->next;
+      delete temp;
+    }
+  }
+  
+  void push(int x, int y, int dir = 0) {
+    StackNode* newNode = new StackNode(x, y, dir);
+    newNode->next = top;
+    top = newNode;
+    size++;
+  }
+  
+  void pop() {
+    if (top != nullptr) {
+      StackNode* temp = top;
+      top = top->next;
+      delete temp;
+      size--;
+    }
+  }
+  
+  StackNode* getTop() {
+    return top;
+  }
+  
+  bool isEmpty() {
+    return top == nullptr;
+  }
+  
+  int getSize() {
+    return size;
+  }
+};
+
 class Maze {
  private:
     int width;
