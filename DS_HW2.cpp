@@ -1,4 +1,19 @@
 #include <iostream>
+#include <string>
+#include <fstream>
+using namespace std;
+void taskone();
+
+class StackNode {
+ public:
+  int x;
+  int y;
+  int dir;
+  StackNode* next;
+
+  StackNode(int xVal, int yVal, int dirVal = 0) 
+    : x(xVal), y(yVal), dir(dirVal), next(nullptr) {}
+};
 
 class Stack {
  private:
@@ -90,6 +105,13 @@ class Maze {
     }
 };
 
+string getfile() {// get filename from user
+    string filename;
+    cout << "Input a file number: ";
+    cin >> filename;
+    return filename + ".txt";
+}
+
 void showMenu() {
   cout << "*** (^_^) Data Structure (^o^) ***" << endl;
   cout << "*** Find the Goal(s) in a Maze ***" << endl;
@@ -123,7 +145,7 @@ int main() {
     }
 
     if (command == 1) {
-
+        taskone();
     } else if (command == 2) {
 
     } else if (command == 3) {
@@ -136,3 +158,13 @@ int main() {
 
  return 0;
 }
+void taskone() { // unfinished
+    string filename = getfile();
+    std::ifstream inputFile;
+    inputFile.open(filename);
+    if (!inputFile.is_open()) {
+        cout << endl << filename << " does not exist!" << endl;
+        return;
+    }
+    
+}   
