@@ -420,5 +420,134 @@ void countAllGoals() { // task 3
 }
 
 void findShortestPath() { // task 4
-  cout << "4" << endl;
+
+
+  string filename = getfile();
+  ifstream inputFile(filename);
+  if (!inputFile.is_open()) {
+    cout << endl
+         << filename << " does not exist!" << endl;
+    return;
+  }
+  int width = 0;
+  int height = 0;
+  inputFile >> width >> height;
+  Maze maze(width, height);
+  char **original = new char*[height];
+  int totalGoals = 0;
+  for (int row = 0; row < height; ++row) {
+    original[row] = new char[width];
+    string line;
+    inputFile >> line;
+    for (int col = 0; col < width; ++col) {
+      maze.setbox(col, row, line[col]);
+      original[row][col] = line[col];
+      if (line[col] == 'G') {
+        totalGoals++;
+      }
+    }
+  }
+  inputFile.close();
+
+  int dx[4] = {1, 0, -1, 0};
+  int dy[4] = {0, 1, 0, -1};
+
+  struct Node {
+    int x, y;
+  };
+
+  bool **visited = new bool*[height];
+  pair<int, int> **parent = new pair<int, int>*[height];
+  for (int i = 0; i < height; i++) {
+    visited[i] = new bool[width];
+    parent[i] = new pair<int, int>[width];
+    for (int j = 0; j < width; j++) {
+      visited[i][j] = false;
+      parent[i][j] = {-1, -1};
+    }
+  }
+
+  Node *queue = new Node[width * height];
+
+  int front = 0, rear = 0;
+  int startX = 0, startY = 0;
+
+  visited[startY][startX] = true;
+  queue[rear++] = {startX, startY};
+  maze.setbox(startX, startY, 'V');
+
+  bool found = false;
+  int goalX = -1, goalY = -1;
+
+  while (front < rear) {
+    Node current = queue[front++];
+
+    if (original[current.y][current.x] == 'G') {
+      found = true;
+      goalX = current.x;
+      goalY = current.y;
+      break;
+    }
+
+    for (int dir = 0; dir < 4; dir++) {
+      int nx = current.x + dx[dir];
+      int ny = current.y + dy[dir];
+
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+        continue;
+      }
+
+      char cell = maze.getbox(nx, ny);
+      if ((cell == 'E' || cell == 'G') && !visited[ny][nx]) {
+        visited[ny][nx] = true;
+        if (cell == 'E') {
+          maze.setbox(nx, ny, 'V');
+        }
+        parent[ny][nx] = {current.x, current.y};
+        queue[rear++] = {nx, ny};
+      }
+    } 
+  }
+  maze.display();
+  cout << endl; 
+  
+  if (!found) {
+    cout << endl;
+    for (int i = 0; i < height; i++) {
+      delete[] visited[i];
+      delete[] parent[i];
+      delete[] original[i];
+    }
+    delete[] visited;
+    delete[] parent;
+    delete[] original;
+    delete[] queue;
+    return;
+  }
+  Maze result(width, height);
+  for(int i = 0; i < height; i++) {
+    for(int j = 0; j < width; j++) {
+      result.setbox(j, i, original[i][j]);
+    }
+  }
+  int pathcount = 1;
+  int x = goalX, y = goalY;
+  while (!(x == startX && y == startY)) {
+    char c = result.getbox(x, y);
+    if (c != 'G') {
+      result.setbox(x, y, 'R');
+    }
+    int px = parent[y][x].first;
+    int py = parent[y][x].second;
+    if(px == -1 && py == -1) {
+      break;
+    }
+    x = px;
+    y = py;
+    pathcount++;
+  }
+  result.setbox(startX, startY, 'R');
+  result.display();
+  cout << endl;
+  cout << "Shortest path length = " << pathcount << endl << endl;
 }
