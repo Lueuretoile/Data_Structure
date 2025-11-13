@@ -433,7 +433,8 @@ void countAllGoals() { // task 3
 
   int totalGoals = 0;
   for (int r = 0; r < height; ++r) {
-    string line; inputFile >> line;
+    string line;
+    inputFile >> line;
     for (int c = 0; c < width; ++c) {
       maze.setbox(c, r, line[c]);
       if (line[c] == 'G') {
@@ -455,10 +456,13 @@ void countAllGoals() { // task 3
   }
 
   int startX = 0, startY = 0;
-  int goalsVisited = 0;
+  int goalsVisited = 0; // 實際走到的目標數
 
   visitedRecord[startY][startX] = true;
-  maze.setbox(startX, startY, 'V');
+  // 起點若為 'E' 改標記為 'V'; 若意外是 'G' 則保持 'G'
+  if (maze.getbox(startX, startY) == 'E') {
+    maze.setbox(startX, startY, 'V');
+  }
 
   Stack path;
   path.push(startX, startY, 0);
@@ -482,9 +486,11 @@ void countAllGoals() { // task 3
       if ((cell == 'E' || cell == 'G') && !visitedRecord[ny][nx]) {
         visitedRecord[ny][nx] = true;
         if (cell == 'G') {
-          goalsVisited++;
+          goalsVisited++; // 訪問到一個目標，保留 'G' 不覆蓋
+        } else {
+          // 一般可走空格標記為 'V'
+          maze.setbox(nx, ny, 'V');
         }
-        maze.setbox(nx, ny, 'V');
         topNode->dir = tryDir;
         path.push(nx, ny, tryDir);
         moved = true;
@@ -504,7 +510,7 @@ void countAllGoals() { // task 3
   maze.display();
   cout << endl;
 
-  cout << "The maze has " << totalGoals << " goal(s) in total." << endl << endl;
+  cout << "The maze has " << goalsVisited << " goal(s) in total." << endl << endl;
 
 
   for (int r = 0; r < height; ++r) {
@@ -512,6 +518,7 @@ void countAllGoals() { // task 3
   }
   delete[] visitedRecord;
 }
+
 
 void findShortestPath() { // task 4
 
