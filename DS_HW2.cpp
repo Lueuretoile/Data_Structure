@@ -119,6 +119,23 @@ string getfile() {// get filename from user
     return "input" + filename + ".txt";
 }
 
+void copyStack(Stack& dest, Stack& src) {
+  while (!dest.isEmpty()) {
+    dest.pop();
+  }
+  Stack temp;
+  StackNode* current = src.getTop();
+  while (current != nullptr) {
+    temp.push(current->x, current->y, current->dir);
+    current = current->next;
+  }
+  // Now pop from temp to dest to maintain original order
+  while (!temp.isEmpty()) {
+    StackNode* node = temp.getTop();
+    dest.push(node->x, node->y, node->dir);
+    temp.pop();
+  }
+}
 void showMenu() {
   cout << "*** (^_^) Data Structure (^o^) ***" << endl;
   cout << "*** Find the Goal(s) in a Maze ***" << endl;
@@ -518,132 +535,106 @@ void countAllGoals() { // task 3
 
 
 void findShortestPath() { // task 4
-
-
   string filename = getfile();
   ifstream inputFile(filename);
   if (!inputFile.is_open()) {
-    cout << endl
-         << filename << " does not exist!" << endl;
+    cout << endl << filename << " does not exist!" << endl << endl;
     return;
   }
-  int width = 0;
-  int height = 0;
+
+  int width = 0, height = 0;
   inputFile >> width >> height;
   Maze maze(width, height);
-  char **original = new char*[height];
+  Maze original(width, height);
   for (int row = 0; row < height; ++row) {
-    original[row] = new char[width];
-    string line;
-    inputFile >> line;
+    string line; inputFile >> line;
     for (int col = 0; col < width; ++col) {
       maze.setbox(col, row, line[col]);
-      original[row][col] = line[col];
+      original.setbox(col, row, line[col]);
     }
   }
   inputFile.close();
 
-  int dx[4] = {1, 0, -1, 0};
+  int dx[4] = {1, 0, -1, 0};   // 0:右 1:下 2:左 3:上
   int dy[4] = {0, 1, 0, -1};
 
-  struct Node {
-    int x, y;
-    int dir;
-  };
-
-  bool **visited = new bool*[height];
-  pair<int, int> **parent = new pair<int, int>*[height];
-  for (int i = 0; i < height; i++) {
-    visited[i] = new bool[width];
-    parent[i] = new pair<int, int>[width];
-    for (int j = 0; j < width; j++) {
-      visited[i][j] = false;
-      parent[i][j] = {-1, -1};
-    }
-  }
-
-  Node *queue = new Node[width * height];
-
-  int front = 0, rear = 0;
+  Stack path;
+  Stack shortestPath;
   int startX = 0, startY = 0;
-
-  visited[startY][startX] = true;
-  queue[rear++] = {startX, startY};
+  
+  bool ** visitedRecord = new bool*[height];
+  for (int r = 0; r < height; ++r) {
+    visitedRecord[r] = new bool[width];
+    for (int c = 0; c < width; ++c) visitedRecord[r][c] = false;
+  }
   maze.setbox(startX, startY, 'V');
+  visitedRecord[startY][startX] = true;
+  path.push(startX, startY, 0); // 初始方向：右(0)
+  int minDistance = INT_MAX;
 
-  bool found = false;
-  int goalX = -1, goalY = -1;
-
-  while (front < rear) {
-    Node current = queue[front++];
-
-    if (original[current.y][current.x] == 'G') {
-      found = true;
-      goalX = current.x;
-      goalY = current.y;
-      break;
-    }
-    int dir = current.dir;
-    for (int i = 0; i < 4; i++) {
-      int tryDir = (dir + i) % 4;
-      int nx = current.x + dx[tryDir];
-      int ny = current.y + dy[tryDir];
-
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
-        continue;
-      }
-
+  while(!path.isEmpty()){
+    StackNode* topNode = path.getTop();
+    int x = topNode->x;
+    int y = topNode->y;
+    int lastDir = topNode->dir; // preferred direction
+    int currentdistance = path.getSize();
+    bool moved = false;
+    for(int k=0;k<4;++k){
+      int tryDir = (lastDir + k) %4;
+      int nx = x + dx[tryDir];
+      int ny = y + dy[tryDir];
+      if(nx<0 || nx>=width || ny<0 || ny>=height) continue;
       char cell = maze.getbox(nx, ny);
-      if ((cell == 'E' || cell == 'G') && !visited[ny][nx]) {
-        visited[ny][nx] = true;
-        if (cell == 'E') {
-          maze.setbox(nx, ny, 'V');
+      if(cell == 'G'){
+        topNode->dir = tryDir;
+        path.push(nx, ny, tryDir);
+        int dist = path.getSize();
+        if (dist < minDistance){
+          minDistance = dist;
+          copyStack(shortestPath, path);
         }
-        parent[ny][nx] = {current.x, current.y};
-        queue[rear++] = {nx, ny};
+        path.pop();
       }
-    } 
+      if(cell == 'E' && !visitedRecord[ny][nx] && currentdistance + 1 < minDistance){
+        maze.setbox(nx, ny, 'V');
+        visitedRecord[ny][nx] = true;
+        topNode->dir = tryDir;
+        path.push(nx, ny, tryDir);
+        moved = true;
+        break;
+      }
+    }
+    if(!moved) {
+
+      visitedRecord[y][x] = false;
+      path.pop();
+    }
   }
   maze.display();
-  cout << endl; 
-  
-  if (!found) {
-    cout << endl;
-    for (int i = 0; i < height; i++) {
-      delete[] visited[i];
-      delete[] parent[i];
-      delete[] original[i];
-    }
-    delete[] visited;
-    delete[] parent;
-    delete[] original;
-    delete[] queue;
+//delete
+  for (int r = 0; r < height; ++r) {
+    delete[] visitedRecord[r];
+  }
+  delete[] visitedRecord;
+
+  cout << endl;
+  if(minDistance == INT_MAX){
+    cout << endl << "### There is no path to find a goal! ###" << endl;
     return;
   }
   Maze result(width, height);
-  for(int i = 0; i < height; i++) {
-    for(int j = 0; j < width; j++) {
-      result.setbox(j, i, original[i][j]);
+  for (int r = 0; r < height; ++r)
+    for (int c = 0; c < width; ++c) {
+      result.setbox(c, r, original.getbox(c, r));
     }
+  while(!shortestPath.isEmpty()){
+    StackNode* node = shortestPath.getTop();
+    if (!(original.getbox(node->x, node->y) == 'G')) {
+      result.setbox(node->x, node->y, 'R');
+    }
+    shortestPath.pop();
   }
-  int pathcount = 1;
-  int x = goalX, y = goalY;
-  while (!(x == startX && y == startY)) {
-    char c = result.getbox(x, y);
-    if (c != 'G') {
-      result.setbox(x, y, 'R');
-    }
-    int px = parent[y][x].first;
-    int py = parent[y][x].second;
-    if(px == -1 && py == -1) {
-      break;
-    }
-    x = px;
-    y = py;
-    pathcount++;
-  }
-  result.setbox(startX, startY, 'R');
   result.display();
-  cout << endl;
-  cout << "Shortest path length = " << pathcount << endl << endl;
+  
+  cout << endl << "Shortest path length = " << minDistance << endl;
 }
