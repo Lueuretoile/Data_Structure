@@ -437,9 +437,9 @@ void countAllGoals() { // task 3
     inputFile >> line;
     for (int c = 0; c < width; ++c) {
       maze.setbox(c, r, line[c]);
-      if (line[c] == 'G') {
-        totalGoals++;
-      }
+      //if (line[c] == 'G') {
+      //  totalGoals++;
+      //}
     }
   }
   inputFile.close();
@@ -487,6 +487,7 @@ void countAllGoals() { // task 3
         visitedRecord[ny][nx] = true;
         if (cell == 'G') {
           goalsVisited++; // 訪問到一個目標，保留 'G' 不覆蓋
+          totalGoals++;
         } else {
           // 一般可走空格標記為 'V'
           maze.setbox(nx, ny, 'V');
@@ -501,16 +502,12 @@ void countAllGoals() { // task 3
     if (!moved) {
       path.pop();
     }
-    // 若已確定所有目標數量，且皆已走過，可結束搜尋
-    if (goalsVisited >= totalGoals) {
-      break;
-    }
   }
 
   maze.display();
   cout << endl;
 
-  cout << "The maze has " << goalsVisited << " goal(s) in total." << endl << endl;
+  cout << "The maze has " << totalGoals << " goal(s) in total." << endl << endl;
 
 
   for (int r = 0; r < height; ++r) {
