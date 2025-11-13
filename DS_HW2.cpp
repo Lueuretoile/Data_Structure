@@ -532,7 +532,6 @@ void findShortestPath() { // task 4
   inputFile >> width >> height;
   Maze maze(width, height);
   char **original = new char*[height];
-  int totalGoals = 0;
   for (int row = 0; row < height; ++row) {
     original[row] = new char[width];
     string line;
@@ -540,9 +539,6 @@ void findShortestPath() { // task 4
     for (int col = 0; col < width; ++col) {
       maze.setbox(col, row, line[col]);
       original[row][col] = line[col];
-      if (line[col] == 'G') {
-        totalGoals++;
-      }
     }
   }
   inputFile.close();
@@ -552,6 +548,7 @@ void findShortestPath() { // task 4
 
   struct Node {
     int x, y;
+    int dir;
   };
 
   bool **visited = new bool*[height];
@@ -586,10 +583,11 @@ void findShortestPath() { // task 4
       goalY = current.y;
       break;
     }
-
-    for (int dir = 0; dir < 4; dir++) {
-      int nx = current.x + dx[dir];
-      int ny = current.y + dy[dir];
+    int dir = current.dir;
+    for (int i = 0; i < 4; i++) {
+      int tryDir = (dir + i) % 4;
+      int nx = current.x + dx[tryDir];
+      int ny = current.y + dy[tryDir];
 
       if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
         continue;
