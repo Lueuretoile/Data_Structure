@@ -181,9 +181,11 @@ void findOneGoal() {
   inputFile >> width >> height;
 
   Maze maze(width, height);
+  vector<string> original(height);
   for (int row = 0; row < height; ++row) {
     string line;
     inputFile >> line;
+    original[row] = line;
     for (int col = 0; col < width; ++col) {
       maze.setbox(col, row, line[col]);
     }
@@ -215,6 +217,9 @@ void findOneGoal() {
   };
 
   visited[startY][startX] = true;
+  if (maze.getbox(startX, startY) == 'E') {
+    maze.setbox(startX, startY, 'V');
+  }
   path.push(startX, startY, 0);
 
   while (!path.isEmpty()) {
@@ -245,6 +250,9 @@ void findOneGoal() {
     char cell = maze.getbox(nx, ny);
     if ((cell == 'E' || cell == 'G' || cell == 'S') && !visited[ny][nx]) {
       visited[ny][nx] = true;
+      if (cell == 'E') {
+        maze.setbox(nx, ny, 'V');
+      }
       path.push(nx, ny, direction);
       if (cell == 'G') {
         found = true;
@@ -260,7 +268,7 @@ void findOneGoal() {
     Maze result(width, height);
     for (int row = 0; row < height; ++row) {
       for (int col = 0; col < width; ++col) {
-        result.setbox(col, row, maze.getbox(col, row));
+        result.setbox(col, row, original[row][col]);
       }
     }
 
