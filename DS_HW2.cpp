@@ -164,12 +164,10 @@ int main() {
 }
 
 void findOneGoal() {
-  // 取得檔名並開啟指定的迷宮檔案
   string filename = getfile();
   ifstream inputFile(filename);
   if (!inputFile.is_open()) {
-    cout << endl
-         << filename << " does not exist!" << endl;
+    cout << endl << filename << " does not exist!" << endl;
     return;
   }
 
@@ -193,13 +191,12 @@ void findOneGoal() {
   int dx[4] = {1, 0, -1, 0};
   int dy[4] = {0, 1, 0, -1};
 
-  // 準備深度優先搜尋
   Stack path;
   int startX = 0;
   int startY = 0;
+  bool found = false;
 
-
-  // 建立訪問紀錄陣列
+  // 訪問紀錄
   bool **visitedRecord = new bool*[height];
   for (int row = 0; row < height; ++row) {
     visitedRecord[row] = new bool[width];
@@ -208,81 +205,67 @@ void findOneGoal() {
     }
   }
 
-  // 將起點標記為已訪問並push into stack
-  bool found = false;
+  // 起點
   maze.setbox(startX, startY, 'V');
   visitedRecord[startY][startX] = true;
-  path.push(startX, startY, 0);
+  path.push(startX, startY, 0); // dir=0:預設優先右
 
-  // main loop
   while (!path.isEmpty()) {
     StackNode *topNode = path.getTop();
     int x = topNode->x;
     int y = topNode->y;
-    int dir = topNode->dir;
+    int dir = topNode->dir; // 優先嘗試的方向
 
-    bool moved = false;
-
-    // 先檢查四周是否有目標，確保能優先找到最近的 'G'
-    for (int i = 0; i < 4; ++i) {
-      int nx = x + dx[i];
-      int ny = y + dy[i];
-
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+    // 先嘗試優先方向
+    int nx = x + dx[dir];
+    int ny = y + dy[dir];
+    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+      char cell = maze.getbox(nx, ny);
+      if (cell == 'G') {
+        path.push(nx, ny, dir); // 保持方向
+        found = true;
+        break;
+      } else if (cell == 'E') {
+        maze.setbox(nx, ny, 'V');
+        visitedRecord[ny][nx] = true;
+        path.getTop()->dir = dir; // 記錄本次方向
+        path.push(nx, ny, dir); // 保持方向
         continue;
       }
+    }
 
-      if (maze.getbox(nx, ny) == 'G') {
-        topNode->dir = i + 1;
-        path.push(nx, ny, 0);
+    // 若優先方向不可走，依右下左上順序嘗試
+    bool moved = false;
+    for (int i = 0; i < 4; ++i) {
+      if (i == dir) continue; // 已嘗試過優先方向
+      int tx = x + dx[i];
+      int ty = y + dy[i];
+      if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
+      char cell = maze.getbox(tx, ty);
+      if (cell == 'G') {
+        path.push(tx, ty, i); // 新方向
         found = true;
         moved = true;
         break;
-      }
-    }
-
-    if (found) {
-      break;
-    }
-
-    // 若鄰近沒有 'G'，依照既定方向尋找可走的空地
-    for (int i = dir; i < 4; ++i) {
-      int nx = x + dx[i];
-      int ny = y + dy[i];
-
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
-        continue;
-      }
-
-      char cell = maze.getbox(nx, ny);
-      if (cell == 'E') {
-        topNode->dir = i + 1;
-        maze.setbox(nx, ny, 'V');
-        visitedRecord[ny][nx] = true;
-        path.push(nx, ny, 0);
+      } else if (cell == 'E') {
+        maze.setbox(tx, ty, 'V');
+        visitedRecord[ty][tx] = true;
+        path.getTop()->dir = i; // 記錄新方向
+        path.push(tx, ty, i); // 新方向
         moved = true;
         break;
       }
     }
-
-    // 若四周皆不可走，回退並清除標記
+    if (found) break;
     if (!moved) {
-      StackNode *deadEnd = path.getTop();
-      int deadX = deadEnd->x;
-      int deadY = deadEnd->y;
       path.pop();
-      if (!(deadX == startX && deadY == startY)) {
-        maze.setbox(deadX, deadY, 'E');
-      }
     }
   }
 
-  // result
+  // 輸出結果
   if (found) {
-    // 搜尋時的訪問狀態
     maze.display();
     cout << endl;
-
     // 建立結果地圖並還原非路徑的 'V'
     Maze result(width, height);
     for (int row = 0; row < height; ++row) {
@@ -295,16 +278,14 @@ void findOneGoal() {
         }
       }
     }
-
     // 將stack中的路徑標記為 'R'
     Stack tempStack;
     while (!path.isEmpty()) {
       StackNode *node = path.getTop();
       result.setbox(node->x, node->y, 'R');
-      tempStack.push(node->x, node->y);
+      tempStack.push(node->x, node->y, node->dir);
       path.pop();
     }
-
     // 保留迷宮中的目標符號
     for (int row = 0; row < height; ++row) {
       for (int col = 0; col < width; ++col) {
@@ -313,23 +294,14 @@ void findOneGoal() {
         }
       }
     }
-
     result.display();
     cout << endl << endl;
   } else {
-    // 未找到目標時還原所有訪問過的空地
-    for (int row = 0; row < height; ++row) {
-      for (int col = 0; col < width; ++col) {
-        if (visitedRecord[row][col] && maze.getbox(col, row) == 'E') {
-          maze.setbox(col, row, 'V');
-        }
-      }
-    }
+    // 找不到目標，僅顯示搜尋過的狀態
     maze.display();
     cout << endl << endl;
   }
 
-  // 釋放訪問紀錄陣列
   for (int row = 0; row < height; ++row) {
     delete[] visitedRecord[row];
   }
@@ -348,4 +320,3 @@ void countAllGoals() { // task 3
 void findShortestPath() { // task 4
   cout << "4" << endl;
 }
-
