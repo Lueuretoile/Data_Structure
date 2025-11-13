@@ -539,4 +539,3 @@ void findShortestPath() { // task 4
   cout << endl;
   cout << "Shortest path length = " << pathcount << endl << endl;
 }
-
