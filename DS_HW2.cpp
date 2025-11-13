@@ -171,7 +171,7 @@ void findOneGoal() {
   string filename = getfile();
   ifstream inputFile(filename);
   if (!inputFile.is_open()) {
-    cout << endl << filename << " does not exist!" << endl;
+    cout << endl << filename << " does not exist!" << endl << endl;
     return;
   }
   // record loded file
@@ -292,7 +292,7 @@ void findNGoals() {
   }
   ifstream inputFile(lastFilename);
   if (!inputFile.is_open()) {
-    cout << endl << lastFilename << " does not exist!" << endl;
+    cout << endl << lastFilename << " does not exist!" << endl << endl;
     return;
   }
   int width = 0, height = 0;
@@ -416,7 +416,101 @@ void findNGoals() {
 }
 
 void countAllGoals() { // task 3
-  cout << "3" << endl;
+  if (!hasLoadedFile || lastFilename.empty()) {
+    cout << endl <<"### Execute command 1 to load a maze! ###" << endl << endl;
+    return;
+  }
+
+  ifstream inputFile(lastFilename);
+  if (!inputFile.is_open()) {
+    cout << endl << lastFilename << " does not exist!" << endl << endl;
+    return;
+  }
+
+  int width = 0, height = 0;
+  inputFile >> width >> height;
+  Maze maze(width, height);
+
+  int totalGoals = 0;
+  for (int r = 0; r < height; ++r) {
+    string line; inputFile >> line;
+    for (int c = 0; c < width; ++c) {
+      maze.setbox(c, r, line[c]);
+      if (line[c] == 'G') {
+        totalGoals++;
+      }
+    }
+  }
+  inputFile.close();
+
+  int dx[4] = {1, 0, -1, 0};
+  int dy[4] = {0, 1, 0, -1};
+
+  bool **visitedRecord = new bool*[height];
+  for (int r = 0; r < height; ++r) {
+    visitedRecord[r] = new bool[width];
+    for (int c = 0; c < width; ++c) {
+      visitedRecord[r][c] = false;
+    }
+  }
+
+  int startX = 0, startY = 0;
+  int goalsVisited = 0;
+
+  visitedRecord[startY][startX] = true;
+  maze.setbox(startX, startY, 'V');
+
+  Stack path;
+  path.push(startX, startY, 0);
+
+  while (!path.isEmpty()) {
+    StackNode* topNode = path.getTop();
+    int x = topNode->x;
+    int y = topNode->y;
+    int lastDir = topNode->dir;
+
+    bool moved = false;
+    for (int k = 0; k < 4; ++k) {
+      int tryDir = (lastDir + k) % 4;
+      int nx = x + dx[tryDir];
+      int ny = y + dy[tryDir];
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+        continue;
+      }
+      char cell = maze.getbox(nx, ny);
+
+      if ((cell == 'E' || cell == 'G') && !visitedRecord[ny][nx]) {
+        visitedRecord[ny][nx] = true;
+        if (cell == 'G') {
+          goalsVisited++;
+        }
+        maze.setbox(nx, ny, 'V');
+        topNode->dir = tryDir;
+        path.push(nx, ny, tryDir);
+        moved = true;
+        break;
+      }
+    }
+
+    if (!moved) {
+      path.pop();
+    }
+    // 若已確定所有目標數量，且皆已走過，可結束搜尋
+    if (goalsVisited >= totalGoals) {
+      break;
+    }
+  }
+
+  maze.display();
+  cout << endl;
+
+  cout << "The maze has " << totalGoals << " goal(s) in total." << endl << endl;
+
+
+  for (int r = 0; r < height; ++r) {
+    delete[] visitedRecord[r];
+  }
+  delete[] visitedRecord;
 }
 
 void findShortestPath() { // task 4
