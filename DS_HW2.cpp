@@ -7,6 +7,10 @@ void findNGoals();
 void countAllGoals();
 void findShortestPath();
 
+// Global state to remember last loaded maze file from task 1
+static string lastFilename = "";
+static bool hasLoadedFile = false;
+
 class StackNode {
  public:
   int x;
@@ -171,12 +175,16 @@ void findOneGoal() {
     return;
   }
 
-  // 讀取迷宮尺寸
+  // Record loaded file for task 2 usage
+  lastFilename = filename;
+  hasLoadedFile = true;
+
+  // Read maze size
   int width = 0;
   int height = 0;
   inputFile >> width >> height;
 
-  // 建立迷宮並載入內容
+  // Create maze and load content
   Maze maze(width, height);
   for (int row = 0; row < height; ++row) {
     string line;
@@ -187,7 +195,7 @@ void findOneGoal() {
   }
   inputFile.close();
 
-  // 定義四個方向（右、下、左、上）
+  // Directions: right, down, left, up
   int dx[4] = {1, 0, -1, 0};
   int dy[4] = {0, 1, 0, -1};
 
@@ -196,7 +204,7 @@ void findOneGoal() {
   int startY = 0;
   bool found = false;
 
-  // 訪問紀錄
+  // Visited record
   bool **visitedRecord = new bool*[height];
   for (int row = 0; row < height; ++row) {
     visitedRecord[row] = new bool[width];
@@ -205,53 +213,53 @@ void findOneGoal() {
     }
   }
 
-  // 起點
+  // Start point
   maze.setbox(startX, startY, 'V');
   visitedRecord[startY][startX] = true;
-  path.push(startX, startY, 0); // dir=0:預設優先右
+  path.push(startX, startY, 0);
 
   while (!path.isEmpty()) {
     StackNode *topNode = path.getTop();
     int x = topNode->x;
     int y = topNode->y;
-    int dir = topNode->dir; // 優先嘗試的方向
+    int dir = topNode->dir; // preferred direction
 
-    // 先嘗試優先方向
+    // Try preferred direction first
     int nx = x + dx[dir];
     int ny = y + dy[dir];
     if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
       char cell = maze.getbox(nx, ny);
       if (cell == 'G') {
-        path.push(nx, ny, dir); // 保持方向
+        path.push(nx, ny, dir);
         found = true;
         break;
       } else if (cell == 'E') {
         maze.setbox(nx, ny, 'V');
         visitedRecord[ny][nx] = true;
-        path.getTop()->dir = dir; // 記錄本次方向
-        path.push(nx, ny, dir); // 保持方向
+        path.getTop()->dir = dir;
+        path.push(nx, ny, dir);
         continue;
       }
     }
 
-    // 若優先方向不可走，依右下左上順序嘗試
+    // If preferred direction not possible, try other directions
     bool moved = false;
     for (int i = 0; i < 4; ++i) {
-      if (i == dir) continue; // 已嘗試過優先方向
+      if (i == dir) continue;
       int tx = x + dx[i];
       int ty = y + dy[i];
       if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
       char cell = maze.getbox(tx, ty);
       if (cell == 'G') {
-        path.push(tx, ty, i); // 新方向
+        path.push(tx, ty, i);
         found = true;
         moved = true;
         break;
       } else if (cell == 'E') {
         maze.setbox(tx, ty, 'V');
         visitedRecord[ty][tx] = true;
-        path.getTop()->dir = i; // 記錄新方向
-        path.push(tx, ty, i); // 新方向
+        path.getTop()->dir = i;
+        path.push(tx, ty, i);
         moved = true;
         break;
       }
@@ -262,11 +270,11 @@ void findOneGoal() {
     }
   }
 
-  // 輸出結果
+  // Output result
   if (found) {
     maze.display();
     cout << endl;
-    // 建立結果地圖並還原非路徑的 'V'
+    // Create result map and restore non-path 'V'
     Maze result(width, height);
     for (int row = 0; row < height; ++row) {
       for (int col = 0; col < width; ++col) {
@@ -278,7 +286,7 @@ void findOneGoal() {
         }
       }
     }
-    // 將stack中的路徑標記為 'R'
+    // Mark path in stack as 'R'
     Stack tempStack;
     while (!path.isEmpty()) {
       StackNode *node = path.getTop();
@@ -286,7 +294,7 @@ void findOneGoal() {
       tempStack.push(node->x, node->y, node->dir);
       path.pop();
     }
-    // 保留迷宮中的目標符號
+    // Keep 'G' in maze
     for (int row = 0; row < height; ++row) {
       for (int col = 0; col < width; ++col) {
         if (maze.getbox(col, row) == 'G') {
@@ -297,7 +305,7 @@ void findOneGoal() {
     result.display();
     cout << endl << endl;
   } else {
-    // 找不到目標，僅顯示搜尋過的狀態
+    // No goal found, only show search state
     maze.display();
     cout << endl << endl;
   }
@@ -310,7 +318,172 @@ void findOneGoal() {
 
 
 void findNGoals() { // task 2
-  cout << "2" << endl;
+  if (!hasLoadedFile || lastFilename.empty()) {
+    cout << "### Execute command 1 to load a maze! ###" << endl;
+    return;
+  }
+
+  cout << endl << "Number of G (goals): ";
+  int N = 0;
+  if (!(cin >> N) || N <= 0) {
+    return;
+  }
+
+  // Load maze from the previously selected file
+  ifstream inputFile(lastFilename);
+  if (!inputFile.is_open()) {
+    cout << endl << lastFilename << " does not exist!" << endl;
+    return;
+  }
+
+  int width = 0;
+  int height = 0;
+  inputFile >> width >> height;
+  Maze maze(width, height);
+
+  int totalGoals = 0;
+  for (int row = 0; row < height; ++row) {
+    string line;
+    inputFile >> line;
+    for (int col = 0; col < width; ++col) {
+      maze.setbox(col, row, line[col]);
+      if (line[col] == 'G') {
+        totalGoals++;
+      }
+    }
+  }
+  inputFile.close();
+
+  int dx[4] = {1, 0, -1, 0};
+  int dy[4] = {0, 1, 0, -1};
+
+  // Visited record (separate from maze content to avoid mutating 'G')
+  bool **visitedRecord = new bool*[height];
+  for (int r = 0; r < height; ++r) {
+    visitedRecord[r] = new bool[width];
+    for (int c = 0; c < width; ++c) visitedRecord[r][c] = false;
+  }
+
+  Stack path;
+  int startX = 0;
+  int startY = 0;
+  int goalsFound = 0;
+
+  maze.setbox(startX, startY, 'V');
+  visitedRecord[startY][startX] = true;
+  path.push(startX, startY, 0);
+
+  while (!path.isEmpty() && goalsFound < N) {
+    StackNode *topNode = path.getTop();
+    int x = topNode->x;
+    int y = topNode->y;
+    int dir = topNode->dir;
+
+    // Try continuing in the preferred direction first
+    // 2
+    int nx = x + dx[dir];
+    int ny = y + dy[dir];
+    bool moved = false;
+    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+      char cell = maze.getbox(nx, ny);
+      if ((cell == 'E' && !visitedRecord[ny][nx]) || (cell == 'G' && !visitedRecord[ny][nx])) {
+        if (cell == 'G') {
+          visitedRecord[ny][nx] = true;
+          path.push(nx, ny, dir);
+          goalsFound++;
+        } else if (cell == 'E') { // 'E'
+          maze.setbox(nx, ny, 'V');
+          visitedRecord[ny][nx] = true;
+          path.getTop()->dir = dir;
+          path.push(nx, ny, dir);
+        }
+        moved = true;
+      }
+    }
+
+    // If preferred dir not possible, try in order right, down, left, up (excluding preferred)
+    if (!moved && goalsFound < N) {
+      for (int i = 0; i < 4; ++i) {
+        if (i == dir) continue;
+        int tx = x + dx[i];
+        int ty = y + dy[i];
+        if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
+        char cell = maze.getbox(tx, ty);
+        if ((cell == 'E' && !visitedRecord[ty][tx]) || (cell == 'G' && !visitedRecord[ty][tx])) {
+          if (cell == 'G') {
+            visitedRecord[ty][tx] = true;
+            path.push(tx, ty, i);
+            goalsFound++;
+          } else { // 'E'
+            maze.setbox(tx, ty, 'V');
+            visitedRecord[ty][tx] = true;
+            path.getTop()->dir = i;
+            path.push(tx, ty, i);
+          }
+          moved = true;
+          break;
+        }
+      }
+    }
+
+    if (!moved) {
+      // Dead-end, backtrack
+      path.pop();
+    }
+  }
+
+  // Output
+  maze.display();
+  cout << endl;
+
+  if (N > totalGoals) {
+    for (int r = 0; r < height; ++r) delete[] visitedRecord[r];
+    delete[] visitedRecord;
+    cout << endl;
+    return;
+  }
+
+  if (goalsFound >= N) {
+    Maze result(width, height);
+    for (int row = 0; row < height; ++row) {
+      for (int col = 0; col < width; ++col) {
+        char current = maze.getbox(col, row);
+        if (current == 'V') {
+          result.setbox(col, row, 'E');
+        } else {
+          result.setbox(col, row, current);
+        }
+      }
+    }
+
+    Stack tempStack;
+    while (!path.isEmpty()) {
+      StackNode *node = path.getTop();
+      result.setbox(node->x, node->y, 'R');
+      tempStack.push(node->x, node->y, node->dir);
+      path.pop();
+    }
+
+    for (int row = 0; row < height; ++row) {
+      for (int col = 0; col < width; ++col) {
+        if (maze.getbox(col, row) == 'G') {
+          result.setbox(col, row, 'G');
+        }
+      }
+    }
+
+    result.display();
+    cout << endl << endl;
+  } else {
+    cout << endl << endl;
+  }
+
+  
+  for (int row = 0; row < height; ++row) {
+    delete[] visitedRecord[row];
+  }
+  delete[] visitedRecord;
+  
 }
 
 void countAllGoals() { // task 3
