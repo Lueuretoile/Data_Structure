@@ -613,9 +613,14 @@ void findShortestPath() { // task 4
   int startX = 0, startY = 0;
   
   bool ** visitedRecord = new bool*[height];
+  bool ** visited = new bool*[height];
   for (int r = 0; r < height; ++r) {
     visitedRecord[r] = new bool[width];
-    for (int c = 0; c < width; ++c) visitedRecord[r][c] = false;
+    visited[r] = new bool[width];
+    for (int c = 0; c < width; ++c) {
+      visitedRecord[r][c] = false;
+      visited[r][c] = false;
+    }
   }
   maze.setbox(startX, startY, 'V');
   visitedRecord[startY][startX] = true;
@@ -636,34 +641,41 @@ void findShortestPath() { // task 4
       if(nx<0 || nx>=width || ny<0 || ny>=height) continue;
       char cell = maze.getbox(nx, ny);
       if(cell == 'G'){
-        topNode->dir = tryDir;
-        path.push(nx, ny, tryDir);
         int dist = path.getSize();
         if (dist < minDistance){
           minDistance = dist;
           copyStack(shortestPath, path);
         }
+        visitedRecord[y][x] = false;
+        maze.setbox(x, y, 'E');
         path.pop();
       }
-      if(cell == 'E' && !visitedRecord[ny][nx] && currentdistance + 1 < minDistance){
+      if(cell == 'E' && !visitedRecord[ny][nx] && currentdistance < minDistance){
         maze.setbox(nx, ny, 'V');
         visitedRecord[ny][nx] = true;
+        visited[ny][nx] = true;
         topNode->dir = tryDir;
         path.push(nx, ny, tryDir);
         moved = true;
         break;
       }
     }
-    if(!moved) {
-
-      visitedRecord[y][x] = false;
+    if(!moved){
       path.pop();
+    }
+  }
+  for(int i = 0 ; i < height; ++i){
+    for(int j = 0; j < width; ++j){
+      if(visited[i][j]){
+        maze.setbox(j, i, 'V');
+      }
     }
   }
   maze.display();
 //delete
   for (int r = 0; r < height; ++r) {
     delete[] visitedRecord[r];
+    delete[] visited[r];
   }
   delete[] visitedRecord;
 
@@ -688,5 +700,5 @@ void findShortestPath() { // task 4
   }
   result.display();
   
-  cout << endl << "Shortest path length = " << minDistance << endl;
+  cout << endl << "Shortest path length = " << minDistance + 1 << endl;
 }
