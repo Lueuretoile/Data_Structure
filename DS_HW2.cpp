@@ -638,6 +638,7 @@ void findShortestPath() { // task 4
   }
   maze.setbox(startX, startY, 'V');
   visitedRecord[startY][startX] = true;
+  visited[startY][startX] = true;
   path.push(startX, startY, 0); // 初始方向：右(0)
   int minDistance = INT_MAX;
 
@@ -719,5 +720,5 @@ void findShortestPath() { // task 4
   }
   result.display();
   
-  cout << endl << "Shortest path length = " << minDistance + 1 << endl;
+  cout << endl << "Shortest path length = " << minDistance + 1 << endl << endl;
 }
