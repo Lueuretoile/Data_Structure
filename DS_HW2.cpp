@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <limits>
 using namespace std;
 void findOneGoal();
 void findNGoals();
@@ -140,6 +141,7 @@ int main() {
 
     if (!(cin >> command)) {
       cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
       string dummy;
       getline(cin, dummy);
       cout << endl << "Command does not exist!" << endl << endl;
@@ -167,7 +169,7 @@ int main() {
  return 0;
 }
 
-void findOneGoal() {
+void findOneGoal() { // task 1
   string filename = getfile();
   ifstream inputFile(filename);
   if (!inputFile.is_open()) {
@@ -184,7 +186,9 @@ void findOneGoal() {
   Maze maze(width, height);
   for (int row = 0; row < height; ++row) {
     string line; inputFile >> line;
-    for (int col = 0; col < width; ++col) maze.setbox(col, row, line[col]);
+    for (int col = 0; col < width; ++col) {
+      maze.setbox(col, row, line[col]);
+    }
   }
   inputFile.close();
 
@@ -199,7 +203,9 @@ void findOneGoal() {
   bool **visitedRecord = new bool*[height];
   for (int r = 0; r < height; ++r) {
     visitedRecord[r] = new bool[width];
-    for (int c = 0; c < width; ++c) visitedRecord[r][c] = false;
+    for (int c = 0; c < width; ++c) {
+      visitedRecord[r][c] = false;
+    }
   }
 
   // start point
@@ -219,7 +225,9 @@ void findOneGoal() {
       int tryDir = (lastDir + k) % 4;
       int nx = x + dx[tryDir];
       int ny = y + dy[tryDir];
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+        continue;
+      }
       char cell = maze.getbox(nx, ny);
 
       if (cell == 'G') {
@@ -239,7 +247,10 @@ void findOneGoal() {
       }
     }
 
-    if (found) break;
+    if (found) {
+      break;
+    }
+
     if (!moved) {
       path.pop();
     }
@@ -250,9 +261,13 @@ void findOneGoal() {
     cout << endl;
     Maze result(width, height);
     for (int r = 0; r < height; ++r)
-      for (int c = 0; c < width; ++c)
-        result.setbox(c, r, (maze.getbox(c, r) == 'V' ? 'E' : maze.getbox(c, r)));
-
+      for (int c = 0; c < width; ++c) {
+        if (maze.getbox(c, r) == 'V') {
+          result.setbox(c, r, 'E');
+        } else {
+          result.setbox(c, r, maze.getbox(c, r));
+        }
+      }
     Stack temp;
     while (!path.isEmpty()) {
       StackNode* node = path.getTop();
@@ -261,10 +276,13 @@ void findOneGoal() {
       path.pop();
     }
     // keep all 'G'
-    for (int r = 0; r < height; ++r)
-      for (int c = 0; c < width; ++c)
-        if (maze.getbox(c, r) == 'G') result.setbox(c, r, 'G');
-
+    for (int r = 0; r < height; ++r) {
+      for (int c = 0; c < width; ++c) {
+        if (maze.getbox(c, r) == 'G') {
+          result.setbox(c, r, 'G');
+        }
+      }
+    }
     result.display();
     cout << endl << endl;
   } else {
@@ -280,15 +298,26 @@ void findOneGoal() {
 }
 
 
-void findNGoals() {
+void findNGoals() { // task 2
   if (!hasLoadedFile || lastFilename.empty()) {
     cout << endl <<"### Execute command 1 to load a maze! ###" << endl << endl;
     return;
   }
-  cout << endl << "Number of G (goals): ";
   int N = 0;
-  if (!(cin >> N) || N <= 0) {
-    return;
+  while (true) {
+    cout << endl << "Number of G (goals): ";
+    if (!(cin >> N)) {
+      cin.clear();
+      string dummy;
+      getline(cin, dummy);
+      continue;
+    }
+    if (N == 0) {
+      cout << endl << "### The number must be in [1,100] ###" << endl;
+    }
+    if (N > 0 && N <= 100) {
+      break;
+    }
   }
   ifstream inputFile(lastFilename);
   if (!inputFile.is_open()) {
@@ -317,14 +346,18 @@ void findNGoals() {
   bool **visitedRecord = new bool*[height];
   for (int r = 0; r < height; ++r) {
     visitedRecord[r] = new bool[width];
-    for (int c = 0; c < width; ++c) visitedRecord[r][c] = false;
+    for (int c = 0; c < width; ++c) {
+      visitedRecord[r][c] = false;
+    }
   }
 
   // 記錄所有已確定為「通往任何已找到 G 的路徑」之座標
   bool **onPath = new bool*[height];
   for (int r = 0; r < height; ++r) {
     onPath[r] = new bool[width];
-    for (int c = 0; c < width; ++c) onPath[r][c] = false;
+    for (int c = 0; c < width; ++c) {
+      onPath[r][c] = false;
+    }
   }
 
   Stack path;
@@ -346,7 +379,9 @@ void findNGoals() {
       int tryDir = (lastDir + k) % 4;
       int nx = x + dx[tryDir];
       int ny = y + dy[tryDir];
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+        continue;
+      }
       char cell = maze.getbox(nx, ny);
 
       if (cell == 'G' && !visitedRecord[ny][nx]) {
@@ -389,16 +424,28 @@ void findNGoals() {
   if (goalsFound >= N) {
     Maze result(width, height);
     for (int r = 0; r < height; ++r)
-      for (int c = 0; c < width; ++c)
-        result.setbox(c, r, (maze.getbox(c, r) == 'V' ? 'E' : maze.getbox(c, r)));
+      for (int c = 0; c < width; ++c) {
+        if (maze.getbox(c, r) == 'V') {
+          result.setbox(c, r, 'E');
+        } else {
+          result.setbox(c, r, maze.getbox(c, r));
+        }
+      }
     // 將累積的所有路徑節點標記為 'R'
-    for (int r = 0; r < height; ++r)
-      for (int c = 0; c < width; ++c)
-        if (onPath[r][c]) result.setbox(c, r, 'R');
-    for (int r = 0; r < height; ++r)
-      for (int c = 0; c < width; ++c)
-        if (maze.getbox(c, r) == 'G') result.setbox(c, r, 'G');
-
+    for (int r = 0; r < height; ++r) {
+      for (int c = 0; c < width; ++c) {
+        if (onPath[r][c]) {
+          result.setbox(c, r, 'R');
+        }
+      }
+    }
+    for (int r = 0; r < height; ++r) {
+      for (int c = 0; c < width; ++c) {
+        if (maze.getbox(c, r) == 'G') {
+          result.setbox(c, r, 'G');
+        }
+      }
+    }
     result.display();
     cout << endl << endl;
   } else {
@@ -517,101 +564,112 @@ void countAllGoals() { // task 3
 }
 
 
+
 void findShortestPath() { // task 4
-
-
   string filename = getfile();
   ifstream inputFile(filename);
   if (!inputFile.is_open()) {
-    cout << endl
-         << filename << " does not exist!" << endl;
+    cout << endl << filename << " does not exist!" << endl;
     return;
   }
-  int width = 0;
-  int height = 0;
+
+  int width = 0, height = 0;
   inputFile >> width >> height;
   Maze maze(width, height);
   char **original = new char*[height];
-  int totalGoals = 0;
-  for (int row = 0; row < height; ++row) {
-    original[row] = new char[width];
-    string line;
-    inputFile >> line;
-    for (int col = 0; col < width; ++col) {
-      maze.setbox(col, row, line[col]);
-      original[row][col] = line[col];
-      if (line[col] == 'G') {
-        totalGoals++;
-      }
+  for (int r = 0; r < height; ++r) {
+    original[r] = new char[width];
+    string line; inputFile >> line;
+    for (int c = 0; c < width; ++c) {
+      maze.setbox(c, r, line[c]);
+      original[r][c] = line[c];
     }
   }
   inputFile.close();
 
+  // 固定方向順序：右(0)、下(1)、左(2)、上(3)
   int dx[4] = {1, 0, -1, 0};
   int dy[4] = {0, 1, 0, -1};
 
-  struct Node {
-    int x, y;
-  };
+  struct Node { int x, y; };
 
   bool **visited = new bool*[height];
-  pair<int, int> **parent = new pair<int, int>*[height];
-  for (int i = 0; i < height; i++) {
+  pair<int,int> **parent = new pair<int,int>*[height];
+  for (int i = 0; i < height; ++i) {
     visited[i] = new bool[width];
-    parent[i] = new pair<int, int>[width];
-    for (int j = 0; j < width; j++) {
+    parent[i] = new pair<int,int>[width];
+    for (int j = 0; j < width; ++j) {
       visited[i][j] = false;
       parent[i][j] = {-1, -1};
     }
   }
 
   Node *queue = new Node[width * height];
-
   int front = 0, rear = 0;
-  int startX = 0, startY = 0;
 
+  int startX = 0, startY = 0;
   visited[startY][startX] = true;
   queue[rear++] = {startX, startY};
-  maze.setbox(startX, startY, 'V');
+  if (maze.getbox(startX, startY) == 'E') {
+    maze.setbox(startX, startY, 'V');
+  }
 
   bool found = false;
   int goalX = -1, goalY = -1;
 
   while (front < rear) {
-    Node current = queue[front++];
+    Node cur = queue[front++];
 
-    if (original[current.y][current.x] == 'G') {
+    // 若當前格為 'G'，找到最短路徑
+    if (original[cur.y][cur.x] == 'G') {
       found = true;
-      goalX = current.x;
-      goalY = current.y;
-      break;
+      goalX = cur.x; goalY = cur.y;
+        break;
     }
 
-    for (int dir = 0; dir < 4; dir++) {
-      int nx = current.x + dx[dir];
-      int ny = current.y + dy[dir];
+    // 固定順序擴展：右→下→左→上
+    for (int dir = 0; dir < 4; ++dir) {
+      int nx = cur.x + dx[dir];
+      int ny = cur.y + dy[dir];
+      
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
 
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
-        continue;
+      char cell = original[ny][nx];
+      if (cell != 'E' && cell != 'G') continue;
+      if (visited[ny][nx]) continue;
+
+      visited[ny][nx] = true;
+      parent[ny][nx] = {cur.x, cur.y};
+
+      // 標記探索過的格子為 'V'
+      if (cell == 'E') {
+        maze.setbox(nx, ny, 'V');
       }
 
-      char cell = maze.getbox(nx, ny);
-      if ((cell == 'E' || cell == 'G') && !visited[ny][nx]) {
-        visited[ny][nx] = true;
-        if (cell == 'E') {
-          maze.setbox(nx, ny, 'V');
-        }
-        parent[ny][nx] = {current.x, current.y};
+      // 找到 'G' 則記錄並繼續（讓同層其他節點也能擴展）
+      if (cell == 'G') {
+        found = true;
+        goalX = nx; goalY = ny;
         queue[rear++] = {nx, ny};
+        // break; //找到後立即跳出此層循環
       }
-    } 
+
+      queue[rear++] = {nx, ny};
+    }
+
+    if (found) {
+      // break; // 找到 G 後跳出主循環
+    }
   }
+
+  // 輸出探索地圖（含 V）
   maze.display();
-  cout << endl; 
-  
+  cout << endl;
+
   if (!found) {
-    cout << endl;
-    for (int i = 0; i < height; i++) {
+    cout << endl << "### There is no path to find a goal! ###" << endl << endl;
+    // 釋放資源
+    for (int i = 0; i < height; ++i) { 
       delete[] visited[i];
       delete[] parent[i];
       delete[] original[i];
@@ -622,30 +680,38 @@ void findShortestPath() { // task 4
     delete[] queue;
     return;
   }
+
+  // 回溯最短路徑
   Maze result(width, height);
-  for(int i = 0; i < height; i++) {
-    for(int j = 0; j < width; j++) {
-      result.setbox(j, i, original[i][j]);
-    }
-  }
-  int pathcount = 1;
+  for (int r = 0; r < height; ++r)
+    for (int c = 0; c < width; ++c)
+      result.setbox(c, r, original[r][c]);
+
+  int pathLen = 1;
   int x = goalX, y = goalY;
   while (!(x == startX && y == startY)) {
-    char c = result.getbox(x, y);
-    if (c != 'G') {
+    if (result.getbox(x, y) != 'G') {
       result.setbox(x, y, 'R');
     }
     int px = parent[y][x].first;
     int py = parent[y][x].second;
-    if(px == -1 && py == -1) {
-      break;
-    }
-    x = px;
-    y = py;
-    pathcount++;
+    if (px == -1 && py == -1) break;
+    x = px; y = py; ++pathLen;
   }
   result.setbox(startX, startY, 'R');
+
   result.display();
   cout << endl;
-  cout << "Shortest path length = " << pathcount << endl << endl;
+  cout << "Shortest path length = " << pathLen << endl << endl;
+
+  // 釋放資源
+  for (int i = 0; i < height; ++i) { 
+    delete[] visited[i]; 
+    delete[] parent[i]; 
+    delete[] original[i]; 
+  }
+  delete[] visited; 
+  delete[] parent; 
+  delete[] original; 
+  delete[] queue;
 }
