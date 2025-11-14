@@ -120,6 +120,23 @@ string getfile() {// get filename from user
     return "input" + filename + ".txt";
 }
 
+void copyStack(Stack& dest, Stack& src) {
+  while (!dest.isEmpty()) {
+    dest.pop();
+  }
+  Stack temp;
+  StackNode* current = src.getTop();
+  while (current != nullptr) {
+    temp.push(current->x, current->y, current->dir);
+    current = current->next;
+  }
+  // Now pop from temp to dest to maintain original order
+  while (!temp.isEmpty()) {
+    StackNode* node = temp.getTop();
+    dest.push(node->x, node->y, node->dir);
+    temp.pop();
+  }
+}
 void showMenu() {
   cout << "*** (^_^) Data Structure (^o^) ***" << endl;
   cout << "*** Find the Goal(s) in a Maze ***" << endl;
@@ -566,152 +583,110 @@ void countAllGoals() { // task 3
 
 
 void findShortestPath() { // task 4
+
+
   string filename = getfile();
   ifstream inputFile(filename);
   if (!inputFile.is_open()) {
-    cout << endl << filename << " does not exist!" << endl;
+    cout << endl << filename << " does not exist!" << endl << endl;
     return;
   }
-
-  int width = 0, height = 0;
+  int width = 0;
+  int height = 0;
   inputFile >> width >> height;
   Maze maze(width, height);
-  char **original = new char*[height];
-  for (int r = 0; r < height; ++r) {
-    original[r] = new char[width];
+  Maze original(width, height);
+  for (int row = 0; row < height; ++row) {
     string line; inputFile >> line;
-    for (int c = 0; c < width; ++c) {
-      maze.setbox(c, r, line[c]);
-      original[r][c] = line[c];
+    for (int col = 0; col < width; ++col) {
+      maze.setbox(col, row, line[col]);
+      original.setbox(col, row, line[col]);
     }
   }
   inputFile.close();
 
-  // 固定方向順序：右(0)、下(1)、左(2)、上(3)
-  int dx[4] = {1, 0, -1, 0};
+  int dx[4] = {1, 0, -1, 0};   // 0:右 1:下 2:左 3:上
   int dy[4] = {0, 1, 0, -1};
 
-  struct Node { int x, y; };
-
-  bool **visited = new bool*[height];
-  pair<int,int> **parent = new pair<int,int>*[height];
-  for (int i = 0; i < height; ++i) {
-    visited[i] = new bool[width];
-    parent[i] = new pair<int,int>[width];
-    for (int j = 0; j < width; ++j) {
-      visited[i][j] = false;
-      parent[i][j] = {-1, -1};
-    }
-  }
-
-  Node *queue = new Node[width * height];
-  int front = 0, rear = 0;
-
+  Stack path;
+  Stack shortestPath;
   int startX = 0, startY = 0;
-  visited[startY][startX] = true;
-  queue[rear++] = {startX, startY};
-  if (maze.getbox(startX, startY) == 'E') {
-    maze.setbox(startX, startY, 'V');
+  
+  bool ** visitedRecord = new bool*[height];
+  for (int r = 0; r < height; ++r) {
+    visitedRecord[r] = new bool[width];
+    for (int c = 0; c < width; ++c) visitedRecord[r][c] = false;
   }
+  maze.setbox(startX, startY, 'V');
+  visitedRecord[startY][startX] = true;
+  path.push(startX, startY, 0); // 初始方向：右(0)
+  int minDistance = INT_MAX;
 
-  bool found = false;
-  int goalX = -1, goalY = -1;
-
-  while (front < rear) {
-    Node cur = queue[front++];
-
-    // 若當前格為 'G'，找到最短路徑
-    if (original[cur.y][cur.x] == 'G') {
-      found = true;
-      goalX = cur.x; goalY = cur.y;
-        break;
-    }
-
-    // 固定順序擴展：右→下→左→上
-    for (int dir = 0; dir < 4; ++dir) {
-      int nx = cur.x + dx[dir];
-      int ny = cur.y + dy[dir];
-      
-      if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-
-      char cell = original[ny][nx];
-      if (cell != 'E' && cell != 'G') continue;
-      if (visited[ny][nx]) continue;
-
-      visited[ny][nx] = true;
-      parent[ny][nx] = {cur.x, cur.y};
-
-      // 標記探索過的格子為 'V'
-      if (cell == 'E') {
+  while(!path.isEmpty()){
+    StackNode* topNode = path.getTop();
+    int x = topNode->x;
+    int y = topNode->y;
+    int lastDir = topNode->dir; // preferred direction
+    int currentdistance = path.getSize();
+    bool moved = false;
+    for(int k=0;k<4;++k){
+      int tryDir = (lastDir + k) %4;
+      int nx = x + dx[tryDir];
+      int ny = y + dy[tryDir];
+      if(nx<0 || nx>=width || ny<0 || ny>=height) continue;
+      char cell = maze.getbox(nx, ny);
+      if(cell == 'G'){
+        topNode->dir = tryDir;
+        path.push(nx, ny, tryDir);
+        int dist = path.getSize();
+        if (dist < minDistance){
+          minDistance = dist;
+          copyStack(shortestPath, path);
+        }
+        path.pop();
+      }
+      if(cell == 'E' && !visitedRecord[ny][nx] && currentdistance + 1 < minDistance){
         maze.setbox(nx, ny, 'V');
+        visitedRecord[ny][nx] = true;
+        topNode->dir = tryDir;
+        path.push(nx, ny, tryDir);
+        moved = true;
+        break;
       }
-
-      // 找到 'G' 則記錄並繼續（讓同層其他節點也能擴展）
-      if (cell == 'G') {
-        found = true;
-        goalX = nx; goalY = ny;
-        queue[rear++] = {nx, ny};
-        // break; //找到後立即跳出此層循環
-      }
-
-      queue[rear++] = {nx, ny};
     }
+    if(!moved) {
 
-    if (found) {
-      // break; // 找到 G 後跳出主循環
+      visitedRecord[y][x] = false;
+      path.pop();
     }
   }
-
-  // 輸出探索地圖（含 V）
   maze.display();
-  cout << endl;
+//delete
+  for (int r = 0; r < height; ++r) {
+    delete[] visitedRecord[r];
+  }
+  delete[] visitedRecord;
 
-  if (!found) {
-    cout << endl << "### There is no path to find a goal! ###" << endl << endl;
-    // 釋放資源
-    for (int i = 0; i < height; ++i) { 
-      delete[] visited[i];
-      delete[] parent[i];
-      delete[] original[i];
-    }
-    delete[] visited;
-    delete[] parent;
-    delete[] original;
-    delete[] queue;
+  cout << endl;
+  if(minDistance == INT_MAX){
+    cout << endl << "### There is no path to find a goal! ###" << endl;
     return;
   }
 
   // 回溯最短路徑
   Maze result(width, height);
   for (int r = 0; r < height; ++r)
-    for (int c = 0; c < width; ++c)
-      result.setbox(c, r, original[r][c]);
-
-  int pathLen = 1;
-  int x = goalX, y = goalY;
-  while (!(x == startX && y == startY)) {
-    if (result.getbox(x, y) != 'G') {
-      result.setbox(x, y, 'R');
+    for (int c = 0; c < width; ++c) {
+      result.setbox(c, r, original.getbox(c, r));
     }
-    int px = parent[y][x].first;
-    int py = parent[y][x].second;
-    if (px == -1 && py == -1) break;
-    x = px; y = py; ++pathLen;
+  while(!shortestPath.isEmpty()){
+    StackNode* node = shortestPath.getTop();
+    if (!(original.getbox(node->x, node->y) == 'G')) {
+      result.setbox(node->x, node->y, 'R');
+    }
+    shortestPath.pop();
   }
-  result.setbox(startX, startY, 'R');
-
   result.display();
-  cout << endl;
-  cout << "Shortest path length = " << pathLen << endl << endl;
-
-  // 釋放資源
-  for (int i = 0; i < height; ++i) { 
-    delete[] visited[i]; 
-    delete[] parent[i]; 
-    delete[] original[i]; 
-  }
-  delete[] visited; 
-  delete[] parent; 
-  delete[] original; 
-  delete[] queue;
+  
+  cout << endl << "Shortest path length = " << minDistance << endl;
 }
