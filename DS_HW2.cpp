@@ -17,8 +17,23 @@ class StackNode {
   int x;
   int y;
   int dir;
+  bool tried[4] = {false, false, false, false}; // 0:右 1:下 2:左 3:上
   StackNode* next;
+  int directionCompute(){
+    if (tried[dir] == false){
+      return dir;
+    } else {
+      for (int i = 1; i < 4; ++i){
+        int newDir = (dir + i) % 4;
+        if (tried[newDir] == false){
+          dir = newDir;
+          return newDir;
+        }
+      }
+      return -1; // all directions tried
+    }
 
+  }
   StackNode(int xVal, int yVal, int dirVal = 0) 
     : x(xVal), y(yVal), dir(dirVal), next(nullptr) {}
 };
@@ -584,7 +599,6 @@ void countAllGoals() { // task 3
 
 void findShortestPath() { // task 4
 
-
   string filename = getfile();
   ifstream inputFile(filename);
   if (!inputFile.is_open()) {
@@ -631,36 +645,41 @@ void findShortestPath() { // task 4
     StackNode* topNode = path.getTop();
     int x = topNode->x;
     int y = topNode->y;
-    int lastDir = topNode->dir; // preferred direction
     int currentdistance = path.getSize();
     bool moved = false;
     for(int k=0;k<4;++k){
-      int tryDir = (lastDir + k) %4;
-      int nx = x + dx[tryDir];
-      int ny = y + dy[tryDir];
+      int trydir = topNode->directionCompute();
+      if (trydir == -1) {
+        break; // all directions tried
+      }
+      topNode->tried[trydir] = true;
+      int nx = x + dx[trydir];
+      int ny = y + dy[trydir];
       if(nx<0 || nx>=width || ny<0 || ny>=height) continue;
       char cell = maze.getbox(nx, ny);
+      if (cell == 'O') continue;
+
       if(cell == 'G'){
         int dist = path.getSize();
         if (dist < minDistance){
           minDistance = dist;
           copyStack(shortestPath, path);
         }
-        visitedRecord[y][x] = false;
-        maze.setbox(x, y, 'E');
-        path.pop();
+        continue;
       }
       if(cell == 'E' && !visitedRecord[ny][nx] && currentdistance < minDistance){
         maze.setbox(nx, ny, 'V');
         visitedRecord[ny][nx] = true;
         visited[ny][nx] = true;
-        topNode->dir = tryDir;
-        path.push(nx, ny, tryDir);
+        topNode->dir = trydir;
+        path.push(nx, ny, trydir);
         moved = true;
         break;
       }
     }
     if(!moved){
+      visitedRecord[y][x] = false;
+      maze.setbox(x, y, 'E');
       path.pop();
     }
   }
