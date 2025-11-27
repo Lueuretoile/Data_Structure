@@ -4,6 +4,7 @@
 using namespace std;
 
 int main() {
+  cout << "hi c++" << endl;
 
   return 0;
 }
