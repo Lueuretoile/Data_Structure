@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
+#include <chrono> // 計時用
 using namespace std;
 
 // define functions
@@ -145,9 +146,7 @@ string getInputID() {
   return id;
 }
 
-void sortInsertion() {
-
-};
+void shellSort();
 
 int main() {
   int command = 0;
@@ -176,19 +175,44 @@ int main() {
   
   return 0;
 }
+void shellSort(Order* array, int n) {
+  for (int gap = n / 2; gap > 0; gap /= 2) {
+    for (int i = gap; i < n; i++) {
+      Order temp = array[i];
+      int j;
+      for (j = i; j >= gap; j -= gap) {
+        bool needShift = false;
+        if (array[j - gap].arrival > temp.arrival) {
+          needShift = true;
+        } else if (array[j - gap].arrival == temp.arrival) {
+          if (array[j - gap].OID > temp.OID) {
+            needShift = true;
+          }
+        }
 
-// design functions
+        if (needShift) {
+          array[j] = array[j - gap];
+        } else {
+          break;
+        }
+      }
+      array[j] = temp;
+    }
+  }
+}
+
 void task1() {
   string fileID = getInputID(); 
   string inputFileName = "input" + fileID + ".txt";
+  string outputFileName = "sorted" + fileID + ".txt";
+
+  auto startRead = chrono::high_resolution_clock::now(); // timer start
 
   ifstream inFile(inputFileName);
   if (!inFile) {
     cout << endl << "### " << inputFileName << " does not exist! ###" << endl << endl;
     return;
   }
-
-  //============================================================
 
   // 第一次讀取 計算資料筆數 (Two-pass approach)
   string headerLine;
@@ -217,6 +241,9 @@ void task1() {
   }
   inFile.close();
 
+  auto endRead = chrono::high_resolution_clock::now(); // timer end
+  auto readTime = chrono::duration_cast<chrono::microseconds>(endRead - startRead).count();
+
   cout << endl;
   cout << "\tOID\tArrival\tDuration\tTimeOut" << endl;
   for (int i = 0; i < totalOrders; i++) {
@@ -227,11 +254,32 @@ void task1() {
            << orderList[i].timeOut << endl;
   }
     
-  // 計時與排序
+  // sort
+  auto stratSort = chrono::high_resolution_clock::now();
+  shellSort(orderList, totalOrders);
+  auto endSort = chrono::high_resolution_clock::now();
 
-  cout << "\nReading data: " << 100 << " us." << endl;
-  cout << "\nSorting data: " << 1 << " us." << endl;
-  cout << "\nWriting data: " << 99 << " us." << endl;
+  auto sortTime = chrono::duration_cast<chrono::microseconds>(endSort - stratSort).count();
+
+  // write in
+  auto startWrite = chrono::high_resolution_clock::now();
+  ofstream outFile(outputFileName);
+
+  outFile << "OID\tArrival\tDuration\tTimeOut" << endl;
+  for (int i = 0; i < totalOrders; i++) {
+    outFile << orderList[i].OID << "\t"
+            << orderList[i].arrival << "\t"
+            << orderList[i].duration << "\t"
+            << orderList[i].timeOut << endl;
+  }
+  outFile.close();
+
+  auto endWrite = chrono::high_resolution_clock::now();
+  auto writeTime = chrono::duration_cast<chrono::microseconds>(endWrite - startWrite).count();
+
+  cout << "\nReading data: " << readTime << " us." << endl;
+  cout << "\nSorting data: " << sortTime << " us." << endl;
+  cout << "\nWriting data: " << writeTime << " us." << endl;
   cout << endl;
   delete[] orderList;
 }
